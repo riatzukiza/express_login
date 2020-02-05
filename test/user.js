@@ -3,14 +3,15 @@ let fetch = require("node-fetch");
 let db = require("../app/db/db.service.js");
 let faker = require("faker");
 
+let userService = require("../app/user/user.service.js");
+
 let app = require("../app/server");
+let server;
 
 test.before(async t => {
     t.log("What?");
     return new Promise((resolve,reject) => {
-        console.log("this is happening");
-        app.listen(0,() => {
-            console.log("listening")
+        server = app.listen(0,() => {
             app.off("error",reject)
             t.pass()
             resolve()
@@ -22,17 +23,55 @@ test.before(async t => {
 test("can create user through api",async t => {
     let userData = {
         email:faker.internet.email(),
-        username:faker.internet.userName(),
-        password:faker.internet.password()
+        userName:faker.internet.userName(),
+        password:faker.internet.password(),
+        firstName:faker.name.firstName(),
+        lastName:faker.name.lastName()
     };
-    console.log("creating test user",userData);
-    let res = await fetch("http://localhost:${app.PORT}/api/v1/user/create",{
+
+    let url = `http://localhost:${server.address().port}/api/v1/user/create`;
+
+    let res = await fetch(url,{
         method:"POST",
-        body:JSON.stringify()
+        headers:{
+            "content-type":"application/json"
+        },
+        body:JSON.stringify(userData)
     });
-    let users = await db .select("users") .where({ email:"example@example.com" });
+
+    t.truthy((await res.json()).token);
+
+    let users = await db("users") .where({ email:userData.email });
     t.is(users.length,1);
     t.pass();
 
 });
-test.todo("User can login through api");
+test("User can login through api",async t => {
+    let userData = {
+        email:faker.internet.email(),
+        userName:faker.internet.userName(),
+        password:faker.internet.password(),
+        firstName:faker.name.firstName(),
+        lastName:faker.name.lastName()
+    };
+    await userService.create(
+        userData.email,
+        userData.userName,
+        userData.firstName,
+        userData.lastName,
+        userData.password
+    )
+    let url = `http://localhost:${server.address().port}/api/v1/user/login`;
+    let res = await fetch(url,{
+        method:"POST",
+        headers:{
+            "content-type":"application/json"
+        },
+        body:JSON.stringify({
+            userName:userData.userName,
+            password:userData.password
+        })
+    });
+
+    t.truthy((await res.json()).token);
+});
