@@ -3,8 +3,8 @@ let jwt = require("express-jwt");
 
 let app = require("express")();
 
-let userRoutes = require("./user/user.routes.js");
-let postRoutes = require("./post/post.routes.js");
+let userMiddleware = require("./user/user.middleware.js");
+let postMiddleware = require("./post/post.middleware.js");
 
 let jwtRouter = jwt({secret:"secret"})
     .unless({path:["/api/v1/user/login",
@@ -13,10 +13,9 @@ let jwtRouter = jwt({secret:"secret"})
 
 app .use(bodyParser.json())
     .use(jwtRouter)
-    .post("/api/v1/user/login",userRoutes.login)
-    .post("/api/v1/user/create",userRoutes.create)
+    .use("/api/v1",userMiddleware)
+    .use("/api/v1",postMiddleware);
 
-    .post("/api/v1/post/create",postRoutes.create)
-    .get("/api/v1/post/list",postRoutes.list);
+
 
 module.exports = app;
